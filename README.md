@@ -42,38 +42,9 @@ This system replaces that with instant, semantically-aware retrieval that unders
 
 The system is structured as a layered request pipeline with strict middleware ordering, separating security concerns from business logic:
 
-```
-┌─────────────────────────────────┐
-│       Browser / Client          │
-│   HTML5 SPA + WebSocket         │
-└────────────────┬────────────────┘
-                 │
-┌────────────────▼────────────────┐
-│       FastAPI Application       │
-│         MIDDLEWARE STACK        │
-│  SecretGuard > CORS > Auth      │
-│  > CSRF > Headers > SizeChk     │
-│  > IPWhitelist > Session        │
-└────┬──────────────┬─────────────┘
-     │              │
-┌────▼────┐  ┌──────▼──────────┐  ┌────────────────┐
-│  Auth   │  │ Search Engine   │  │ Pareto         │
-│ Duo OIDC│  │ NLP Pipeline    │  │ Analysis       │
-│ Session │  │ 4-Stage Rerank  │  │                │
-└────┬────┘  └──────┬──────────┘  └────────────────┘
-     │              │
-┌────▼──────────────▼─────────────┐
-│          Data Layer             │
-│  BigQuery Vector Store          │
-│  PostgreSQL Fallback            │
-│  L2L External API               │
-└─────────────────────────────────┘
-     │
-┌────▼────────────┐
-│ Valkey / Redis  │
-│ Sessions        │
-└─────────────────┘
-```
+<p align="center">
+  <img src="docs/architecture.png" alt="System Architecture" width="700" />
+</p>
 
 ---
 
