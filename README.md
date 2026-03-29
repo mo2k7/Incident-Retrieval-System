@@ -1,4 +1,4 @@
-# Intelligent Incident Retrieval System
+# Intelligent Incident Retrieval System (Internship / Coop)
 
 **Production-grade ML-powered semantic search platform for industrial maintenance**
 
