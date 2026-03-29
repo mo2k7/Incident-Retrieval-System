@@ -10,9 +10,9 @@
 
 Eliminate the time maintenance technicians spend manually searching through logs across different shifts. The previous workflow relied on **tribal knowledge**, **manual documentation on paper**, and **diagnosing problems from scratch** with no way to know whether the current issue was recurrent or new.
 
-This system replaces that with instant, semantically-aware retrieval that understands intent — not just keywords. It significantly reduces dependence on tribal knowledge, speeds up problem resolution, and surfaces notes from previous fixes including what machine parts were used during similar repairs.
+This system replaces that with instant, semantically-aware retrieval that understands intent not just keywords. It significantly reduces dependence on tribal knowledge, speeds up problem resolution, and surfaces notes from previous fixes including what machine parts were used during similar repairs.
 
-**The result: a projected 40% drop in MTTR (Mean Time To Repair), directly reducing machine downtime.**
+**The result: A projected 40% drop in MTTR (Mean Time To Repair), directly reducing machine downtime.**
 
 ---
 
@@ -20,21 +20,21 @@ This system replaces that with instant, semantically-aware retrieval that unders
 
 | Feature | Description |
 |---|---|
-| **Semantic Search** | Free-text incident descriptions are matched against 100,000+ historical dispatches using dense vector similarity and multi-model reranking — going well beyond keyword matching to understand intent and context |
-| **Dispatch Lookup** | Direct lookup by dispatch number against the Leading2Lean external API, with retry/backoff logic |
+| **Semantic Search** | Text incident descriptions are matched against 100,000+ historical dispatches using dense vector similarity and multi-model reranking — going well beyond keyword matching to understand intent and context |
+| **Dispatch Lookup** | Direct lookup by dispatch number against the Leading2Lean external API (REST based architecture), with retry/backoff logic |
 | **Pareto Analysis** | Recurring failure patterns surfaced with drill-down by production line and machine, including nested subcategories and ML-powered problem description summarization. Powered by interactive Plotly charts |
-| **Real-time Streaming** | WebSocket connections push pipeline progress and results to the client as each stage completes — live feedback without polling |
+| **Real-time Streaming** | WebSocket connections pushed pipeline progress and results to the client as each stage completeed allowing for live feedback without polling |
 
 ---
 
 ## Results
 
 - 🎯 **90%+ recommendation accuracy** across various machines inside the factory
-- ⚡ **Projected 40% MTTR reduction** by matching failure descriptions against 100K+ historical dispatches
-- 🔒 **Enterprise-grade security** — Duo OIDC authentication, CSRF protection, rate limiting, sensitive information redaction, Google Secret Manager
-- 📊 **Nested Pareto analysis** with ML-integrated summarization for problem descriptions over time
+- ⚡ **Projected 40% MTTR reduction** by matching failure descriptions against 100K+ historical dispatches reducing machine downtime significantly
+- 🔒 **Enterprise-grade security** — Duo OIDC authentication (SSO), CSRF protection, rate limiting, sensitive information redaction, Google Secret Manager for storing sensitive information
+- 📊 **Nested Pareto analysis** with ML-integrated summarization for problem descriptions of given machines
 - 💰 **Scale-to-zero architecture** eliminated GPU costs during off-hours, avoiding unnecessary ongoing charges
-- 🔄 **Real-time WebSocket streaming** delivers progressive results as each pipeline stage completes
+- 🔄 **Real-time WebSocket streaming** delivered progressive results as each pipeline stage completed
 
 ---
 
@@ -66,14 +66,14 @@ gtr-t5-xl                  SPLADE-CoCondenser        ColBERTv2.0             Mon
 Running a cross-encoder like MonoT5 over the full corpus of 100,000+ dispatches on every query would be prohibitively slow. The funnel architecture lets the cheap vector search cast a wide net (100 candidates), then progressively expensive rerankers refine the set:
 
 - **SPLADE** catches lexical matches that embeddings miss — exact part numbers, error codes, machine identifiers
-- **ColBERT** adds contextual density through late-interaction token matching
-- **MonoT5** makes the final precision call on the shortlisted 10, producing the 3 results surfaced to the technician
+- **ColBERT** adds contextual density through late-interaction token matching finding similar wordings
+- **MonoT5** makes the final precision call on the shortlisted 10, producing the 3 results surfaced to the technician answering the original user query
 
 ### Model Management
 
 | Feature | Detail |
 |---|---|
-| **Singleton Lifecycle** | All models managed by `NLPModelManager` — loaded once, shared across requests. No per-request instantiation |
+| **Singleton Lifecycle** | All models managed by a global `NLPModelManager` which is thread safe - loaded once, shared across requests. No per-request instantiation |
 | **Per-Model Device Assignment** | Embedding model on CPU; rerankers (SPLADE, ColBERT, MonoT5) on GPU — balanced across L4's 24 GB VRAM |
 | **Precision Control** | Default `float32`, configurable `bfloat16` to halve GPU memory at minimal accuracy cost |
 | **Cython Fast-Path** | OpenMP-accelerated similarity computation outside the GIL; transparent fallback to PyTorch in development |
@@ -102,8 +102,8 @@ Running a cross-encoder like MonoT5 over the full corpus of 100,000+ dispatches 
 
 | Layer | Technology |
 |---|---|
-| Authentication | Duo Security OIDC via Authlib |
-| Secrets Management | HashiCorp Vault (KV v1/v2) — local; Google Cloud Secret Manager — cloud |
+| Authentication | Duo Security OIDC via Authlib using company SSO |
+| Secrets Management | HashiCorp Vault (KV v1/v2) — local; Google Cloud Secret Manager - Google Cloud |
 | Session Storage | Valkey with TTL-based expiry (sliding + absolute timeouts) |
 | CSRF Protection | Double-submit cookie with constant-time comparison |
 | Rate Limiting | SlowAPI — per-IP, per protected endpoint |
@@ -117,7 +117,7 @@ Running a cross-encoder like MonoT5 over the full corpus of 100,000+ dispatches 
 | Scaling | 0–2 instances, concurrency 1 (GPU-bound workload) |
 | CI/CD | Google Cloud Build → Artifact Registry → Cloud Run deploy |
 | Region | us-east4 |
-| Monitoring | Prometheus metrics endpoint + structured JSON logging |
+| Monitoring | Structured JSON logging |
 
 ### Frontend
 
@@ -142,7 +142,7 @@ Each Cloud Run instance runs exactly one Uvicorn worker. This is deliberate: run
 
 ### Lazy Model Loading via Centralized Registry
 
-All heavy dependencies (PyTorch, Transformers, Sentence-Transformers) are loaded through a centralized `shared_imports.py` registry. Models are instantiated on first use, not at startup. This reduced cold-start RAM from ~28 GB to ~18 GB — approximately a **30% reduction** — providing a smoother, more stable user experience and making the system feasible on the 16 GiB Cloud Run tier with GPU offload.
+All heavy dependencies (PyTorch, Transformers, Sentence-Transformers) are loaded through a centralized `shared_imports.py` registry. Models are instantiated on first use, not at startup. This reduced cold-start memory usage resulting in a **30% reduction** providing a smoother, more stable user experience and making the system feasible on the 16 GiB Cloud Run tier with GPU offload.
 
 ### Database Failover with Degraded-Mode Fallback
 
@@ -210,8 +210,8 @@ A `RedactSensitiveFilter` is applied to all loggers. It automatically strips ema
 
 ## Role
 
-**Sole developer and product owner.** Owned the full SDLC — from data ingestion and model selection to deployment, security hardening, stakeholder iteration, and production maintenance. This project demonstrates the ability to independently own, build, and ship production ML systems end-to-end.
+**Sole developer and product owner.** Owned the full SDLC - from data ingestion and model selection to deployment, security hardening, stakeholder iteration, and production maintenance. This project demonstrates the ability to independently own, build, and ship production ML systems end-to-end.
 
 ---
 
-*Built with FastAPI, PyTorch, and a 4-stage NLP reranking pipeline. Deployed on Google Cloud Run with NVIDIA L4 GPU.*
+*Built with FastAPI, PyTorch, and a 4-stage NLP reranking pipeline (RAG based). Deployed on Google Cloud Run with NVIDIA L4 GPU.*
